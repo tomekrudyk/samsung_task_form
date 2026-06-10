@@ -88,13 +88,13 @@ describe('step2Schema', () => {
     expect(result.success).toBe(true)
   })
 
-  it('requires company fields for Business', () => {
+  it('accepts Business without company fields', () => {
     const result = step2Schema.safeParse({
       enquiryType: 'Business',
       companyName: '',
       numberOfEmployees: '',
     })
-    expect(result.success).toBe(false)
+    expect(result.success).toBe(true)
   })
 
   it('accepts Business with company fields', () => {
@@ -115,10 +115,10 @@ describe('step2Schema', () => {
     expect(result.success).toBe(false)
   })
 
-  it('requires company fields for Partnership', () => {
+  it('rejects invalid employee count when provided for Partnership', () => {
     const result = step2Schema.safeParse({
       enquiryType: 'Partnership',
-      companyName: '',
+      companyName: 'Acme',
       numberOfEmployees: '0',
     })
     expect(result.success).toBe(false)

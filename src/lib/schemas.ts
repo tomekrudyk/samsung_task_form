@@ -80,40 +80,31 @@ export const step2Schema = z
   .superRefine((data, ctx) => {
     const requiresCompany = data.enquiryType === 'Business' || data.enquiryType === 'Partnership'
 
-    if (requiresCompany) {
-      if (!data.companyName?.trim()) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Company name is required',
-          path: ['companyName'],
-        })
-      } else if (data.companyName.trim().length > 200) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Company name is too long',
-          path: ['companyName'],
-        })
-      }
+    if (!requiresCompany) return
 
-      const employees = data.numberOfEmployees ? Number(data.numberOfEmployees) : NaN
-      if (
-        !data.numberOfEmployees?.trim() ||
-        Number.isNaN(employees) ||
-        !Number.isInteger(employees) ||
-        employees < 1
-      ) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Number of employees must be a whole number of at least 1',
-          path: ['numberOfEmployees'],
-        })
-      } else if (employees > 1_000_000) {
-        ctx.addIssue({
-          code: 'custom',
-          message: 'Number of employees is too large',
-          path: ['numberOfEmployees'],
-        })
-      }
+    if (data.companyName?.trim() && data.companyName.trim().length > 200) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Company name is too long',
+        path: ['companyName'],
+      })
+    }
+
+    if (!data.numberOfEmployees?.trim()) return
+
+    const employees = Number(data.numberOfEmployees)
+    if (Number.isNaN(employees) || !Number.isInteger(employees) || employees < 1) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Number of employees must be a whole number of at least 1',
+        path: ['numberOfEmployees'],
+      })
+    } else if (employees > 1_000_000) {
+      ctx.addIssue({
+        code: 'custom',
+        message: 'Number of employees is too large',
+        path: ['numberOfEmployees'],
+      })
     }
   })
 

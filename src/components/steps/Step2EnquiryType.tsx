@@ -50,8 +50,10 @@ export function Step2EnquiryType() {
       enquiryType: data.enquiryType,
       ...(requiresCompanyFields(data.enquiryType)
         ? {
-            companyName: data.companyName,
-            numberOfEmployees: Number(data.numberOfEmployees),
+            companyName: data.companyName?.trim() ?? '',
+            numberOfEmployees: data.numberOfEmployees?.trim()
+              ? Number(data.numberOfEmployees)
+              : undefined,
           }
         : {
             companyName: '',
@@ -126,11 +128,13 @@ export function Step2EnquiryType() {
         >
           <p className="text-sm font-medium text-slate-700 dark:text-slate-200">
             Company details
+            <span className="ml-1 text-xs font-normal text-slate-500 dark:text-slate-400">
+              (optional)
+            </span>
           </p>
           <Input
             id="companyName"
             label="Company name"
-            required
             autoComplete="organization"
             error={errors.companyName?.message}
             {...register('companyName')}
@@ -139,7 +143,6 @@ export function Step2EnquiryType() {
             id="numberOfEmployees"
             label="Number of employees"
             type="number"
-            required
             min={1}
             inputMode="numeric"
             error={errors.numberOfEmployees?.message}
