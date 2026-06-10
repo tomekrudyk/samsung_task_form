@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import { parsePersistedState, sanitizeEnquiryType } from '../lib/schemas'
 import {
   INITIAL_FORM_DATA,
   TOTAL_STEPS,
@@ -16,10 +17,13 @@ import {
 interface FormWizardContextValue {
   currentStep: number
   formData: FormData
+  isSubmitted: boolean
   setFormData: (data: Partial<FormData>) => void
   nextStep: () => void
   prevStep: () => void
   goToStep: (step: number) => void
+  setSubmitted: (value: boolean) => void
+  resetWizard: () => void
   totalSteps: number
 }
 
@@ -27,11 +31,28 @@ const FormWizardContext = createContext<FormWizardContextValue | null>(null)
 
 const STORAGE_KEY = 'contact-form-wizard'
 
+function clampStep(step: number): number {
+  return Math.min(Math.max(Math.floor(step), 1), TOTAL_STEPS)
+}
+
 function loadPersistedState(): { currentStep: number; formData: FormData } | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = sessionStorage.getItem(STORAGE_KEY)
     if (!raw) return null
-    return JSON.parse(raw) as { currentStep: number; formData: FormData }
+
+    const parsed = parsePersistedState(raw)
+    if (!parsed) return null
+
+    const { formData: stored } = parsed
+    return {
+      currentStep: clampStep(parsed.currentStep),
+      formData: {
+        ...INITIAL_FORM_DATA,
+        ...stored,
+        enquiryType: sanitizeEnquiryType(stored.enquiryType),
+        terms: Boolean(stored.terms),
+      },
+    }
   } catch {
     return null
   }
@@ -42,14 +63,16 @@ export function FormWizardProvider({ children }: { children: ReactNode }) {
 
   const [currentStep, setCurrentStep] = useState(persisted?.currentStep ?? 1)
   const [formData, setFormDataState] = useState<FormData>(persisted?.formData ?? INITIAL_FORM_DATA)
+  const [isSubmitted, setIsSubmitted] = useState(false)
 
   useEffect(() => {
+    if (isSubmitted) return
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ currentStep, formData }))
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ currentStep, formData }))
     } catch {
-      /* ignore */
+      /* ignore quota / private mode */
     }
-  }, [currentStep, formData])
+  }, [currentStep, formData, isSubmitted])
 
   const setFormData = useCallback((data: Partial<FormData>) => {
     setFormDataState((prev) => ({ ...prev, ...data }))
@@ -64,20 +87,45 @@ export function FormWizardProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const goToStep = useCallback((step: number) => {
-    setCurrentStep(Math.min(Math.max(step, 1), TOTAL_STEPS))
+    setCurrentStep(clampStep(step))
+  }, [])
+
+  const setSubmitted = useCallback((value: boolean) => {
+    setIsSubmitted(value)
+    if (value) clearFormWizardStorage()
+  }, [])
+
+  const resetWizard = useCallback(() => {
+    setFormDataState(INITIAL_FORM_DATA)
+    setCurrentStep(1)
+    setIsSubmitted(false)
+    clearFormWizardStorage()
   }, [])
 
   const value = useMemo(
     () => ({
       currentStep,
       formData,
+      isSubmitted,
       setFormData,
       nextStep,
       prevStep,
       goToStep,
+      setSubmitted,
+      resetWizard,
       totalSteps: TOTAL_STEPS,
     }),
-    [currentStep, formData, setFormData, nextStep, prevStep, goToStep]
+    [
+      currentStep,
+      formData,
+      isSubmitted,
+      setFormData,
+      nextStep,
+      prevStep,
+      goToStep,
+      setSubmitted,
+      resetWizard,
+    ]
   )
 
   return <FormWizardContext.Provider value={value}>{children}</FormWizardContext.Provider>
@@ -93,7 +141,7 @@ export function useFormWizard() {
 
 export function clearFormWizardStorage(): void {
   try {
-    localStorage.removeItem(STORAGE_KEY)
+    sessionStorage.removeItem(STORAGE_KEY)
   } catch {
     /* ignore */
   }

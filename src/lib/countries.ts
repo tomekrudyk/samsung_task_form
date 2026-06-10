@@ -1,6 +1,7 @@
 import type { Country } from '../types/form'
 
 const COUNTRIES_URL = 'https://restcountries.com/v3.1/all?fields=name,cca2'
+const REQUEST_TIMEOUT_MS = 10_000
 
 let cachedCountries: Country[] | null = null
 let fetchPromise: Promise<Country[]> | null = null
@@ -24,13 +25,24 @@ export async function fetchCountries(): Promise<Country[]> {
   }
 
   fetchPromise = (async () => {
-    const response = await fetch(COUNTRIES_URL)
-    if (!response.ok) {
-      throw new Error('Failed to load countries')
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+
+    try {
+      const response = await fetch(COUNTRIES_URL, { signal: controller.signal })
+      if (!response.ok) {
+        throw new Error('Failed to load countries')
+      }
+      const data = (await response.json()) as Array<{ name: { common: string }; cca2: string }>
+      const countries = mapCountries(data)
+      if (countries.length === 0) {
+        throw new Error('Empty countries response')
+      }
+      cachedCountries = countries
+      return cachedCountries
+    } finally {
+      clearTimeout(timeoutId)
     }
-    const data = (await response.json()) as Array<{ name: { common: string }; cca2: string }>
-    cachedCountries = mapCountries(data)
-    return cachedCountries
   })()
 
   try {

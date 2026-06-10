@@ -61,4 +61,22 @@ src/
 2. **Step 2 — Enquiry Type**: Personal / Business / Partnership / Other (+ conditional company fields)
 3. **Step 3 — Message & Consent**: Subject, message (500 char limit), terms checkbox
 
-Submit logs the full payload to the console (ready to swap for a real API).
+Submit posts to `VITE_SUBMIT_URL` when configured, otherwise uses a mock endpoint. On success, a confirmation screen is shown.
+
+## Environment Variables
+
+Copy `.env.example` to `.env.local`:
+
+| Variable | Description |
+|----------|-------------|
+| `VITE_SUBMIT_URL` | POST endpoint for form submission |
+| `VITE_TERMS_URL` | Terms and conditions URL |
+| `VITE_PRIVACY_URL` | Privacy policy URL |
+
+## Production Checklist
+
+- Set `VITE_SUBMIT_URL` to your backend endpoint
+- Set legal document URLs (`VITE_TERMS_URL`, `VITE_PRIVACY_URL`)
+- Wizard draft data is stored in `sessionStorage` (cleared on tab close)
+- No PII is logged to the console
+- CI runs lint, build, unit tests, and Playwright e2e on every push

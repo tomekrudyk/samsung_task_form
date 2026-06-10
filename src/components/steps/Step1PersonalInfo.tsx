@@ -9,7 +9,7 @@ import { Select } from '../ui/Select'
 
 export function Step1PersonalInfo() {
   const { formData, setFormData, nextStep } = useFormWizard()
-  const { countries, isLoading, error: countriesError } = useCountries()
+  const { countries, isLoading, error: countriesError, isFallback } = useCountries()
 
   const {
     register,
@@ -34,6 +34,9 @@ export function Step1PersonalInfo() {
   }
 
   const countryOptions = countries.map((c) => ({ value: c.code, label: c.name }))
+  const countryHelperText = isFallback
+    ? countriesError
+    : 'Select your country of residence.'
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-6">
@@ -104,13 +107,13 @@ export function Step1PersonalInfo() {
         required
         isLoading={isLoading}
         options={countryOptions}
-        helperText={countriesError ?? 'Select your country of residence.'}
+        helperText={countryHelperText ?? undefined}
         error={errors.country?.message}
         {...register('country')}
       />
 
       <div className="flex justify-end pt-2">
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting || isLoading}>
           Continue
         </Button>
       </div>

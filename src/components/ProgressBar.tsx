@@ -6,28 +6,24 @@ interface ProgressBarProps {
 }
 
 export function ProgressBar({ currentStep }: ProgressBarProps) {
-  const progressPercent = ((currentStep - 1) / (TOTAL_STEPS - 1)) * 100
+  const progressPercent = (currentStep / TOTAL_STEPS) * 100
 
   return (
     <div className="mb-8 space-y-4">
       <div className="flex items-center justify-between gap-4">
-        <p
-          className="text-sm font-medium text-slate-500 dark:text-slate-400"
-          aria-live="polite"
-          aria-atomic="true"
-        >
+        <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
           Step {currentStep} of {TOTAL_STEPS}
         </p>
         <p className="text-sm text-slate-400 dark:text-slate-500">
-          {Math.round((currentStep / TOTAL_STEPS) * 100)}% complete
+          {Math.round(progressPercent)}% complete
         </p>
       </div>
 
       <div
         role="progressbar"
-        aria-valuenow={currentStep}
-        aria-valuemin={1}
-        aria-valuemax={TOTAL_STEPS}
+        aria-valuenow={Math.round(progressPercent)}
+        aria-valuemin={0}
+        aria-valuemax={100}
         aria-label={`Form progress: step ${currentStep} of ${TOTAL_STEPS}`}
         className="relative h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800"
       >
@@ -69,7 +65,10 @@ export function ProgressBar({ currentStep }: ProgressBarProps) {
               >
                 {isCompleted ? '✓' : stepNumber}
               </span>
-              <span className="hidden truncate sm:inline">{title}</span>
+              <span className="truncate" title={title}>
+                <span className="sm:hidden">Step {stepNumber}</span>
+                <span className="hidden sm:inline">{title}</span>
+              </span>
             </li>
           )
         })}

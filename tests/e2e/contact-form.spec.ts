@@ -3,14 +3,17 @@ import { test, expect } from '@playwright/test'
 function getAdultDob(): string {
   const date = new Date()
   date.setFullYear(date.getFullYear() - 25)
-  return date.toISOString().split('T')[0]
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 test.describe('Contact Form E2E', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
     await page.evaluate(() => {
-      localStorage.removeItem('contact-form-wizard')
+      sessionStorage.removeItem('contact-form-wizard')
       localStorage.removeItem('theme')
     })
     await page.reload()
@@ -48,10 +51,9 @@ test.describe('Contact Form E2E', () => {
     await page.getByRole('textbox', { name: 'Message' }).fill('I would like to discuss a partnership opportunity.')
     await page.getByRole('checkbox').check()
 
-    const consolePromise = page.waitForEvent('console', (msg) => msg.text().includes('Form submitted'))
     await page.getByRole('button', { name: 'Submit enquiry' }).click()
-    const consoleMsg = await consolePromise
-    expect(consoleMsg.text()).toContain('Form submitted')
+    await expect(page.getByTestId('submission-success')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Enquiry submitted successfully' })).toBeVisible()
   })
 
   test('cannot proceed with invalid step 1', async ({ page }) => {
@@ -70,7 +72,14 @@ test.describe('Contact Form E2E', () => {
 
   test('conditional block appears and disappears', async ({ page }) => {
     await page.route('**/restcountries.com/**', async (route) => {
-      await route.fulfill({ status: 200, body: '[]' })
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify([
+          { name: { common: 'United States' }, cca2: 'US' },
+          { name: { common: 'Poland' }, cca2: 'PL' },
+        ]),
+      })
     })
 
     await page.getByLabel('First name').fill('Jane')
@@ -78,7 +87,7 @@ test.describe('Contact Form E2E', () => {
     await page.getByLabel('Email address').fill('jane@example.com')
     await page.getByLabel('Phone number').fill('+1 555 123 4567')
     await page.getByLabel('Date of birth').fill(getAdultDob())
-    await page.getByLabel('Country').selectOption({ index: 1 })
+    await page.getByLabel('Country').selectOption('US')
     await page.getByRole('button', { name: 'Continue' }).click()
 
     await expect(page.getByTestId('company-fields')).not.toBeVisible()

@@ -1,7 +1,7 @@
+import { describe, expect, it, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, beforeEach } from 'vitest'
-import { FormWizardProvider, useFormWizard } from '../context/FormWizardContext'
+import { FormWizardProvider, useFormWizard, clearFormWizardStorage } from './FormWizardContext'
 
 function NavigationHarness() {
   const { currentStep, nextStep, prevStep, totalSteps } = useFormWizard()
@@ -18,7 +18,8 @@ function NavigationHarness() {
 
 describe('FormWizardContext navigation', () => {
   beforeEach(() => {
-    localStorage.clear()
+    sessionStorage.clear()
+    clearFormWizardStorage()
   })
 
   it('starts at step 1', () => {
@@ -72,6 +73,21 @@ describe('FormWizardContext navigation', () => {
     await user.click(screen.getByRole('button', { name: 'Next' }))
     await user.click(screen.getByRole('button', { name: 'Next' }))
     await user.click(screen.getByRole('button', { name: 'Next' }))
+    expect(screen.getByTestId('current-step')).toHaveTextContent('3')
+  })
+
+  it('clamps corrupted persisted step values', () => {
+    sessionStorage.setItem(
+      'contact-form-wizard',
+      JSON.stringify({ currentStep: 99, formData: { firstName: 'Jane' } })
+    )
+
+    render(
+      <FormWizardProvider>
+        <NavigationHarness />
+      </FormWizardProvider>
+    )
+
     expect(screen.getByTestId('current-step')).toHaveTextContent('3')
   })
 })

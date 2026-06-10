@@ -6,7 +6,7 @@ import { Step2EnquiryType } from './Step2EnquiryType'
 
 describe('Step2EnquiryType conditional fields', () => {
   beforeEach(() => {
-    localStorage.clear()
+    sessionStorage.clear()
   })
 
   it('shows company fields for Business enquiry type', async () => {
