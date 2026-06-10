@@ -7,7 +7,8 @@ const validFormData: FormData = {
   firstName: 'Jane',
   lastName: 'Doe',
   email: 'jane@example.com',
-  phone: '+1 555 123 4567',
+  phoneCountryCode: 'US',
+  phone: '+12025550123',
   dateOfBirth: '1990-01-15',
   country: 'US',
   enquiryType: 'Personal',
@@ -21,7 +22,8 @@ describe('step1Schema', () => {
     firstName: 'Jane',
     lastName: 'Doe',
     email: 'jane@example.com',
-    phone: '+1 555 123 4567',
+    phoneCountryCode: 'US',
+    phone: '2025550123',
     dateOfBirth: '1990-01-15',
     country: 'US',
   }
@@ -54,11 +56,20 @@ describe('step1Schema', () => {
     expect(result.success).toBe(false)
   })
 
+  it('rejects invalid phone numbers', () => {
+    const result = step1Schema.safeParse({ ...validStep1, phone: '123' })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues.some((i) => i.path.includes('phone'))).toBe(true)
+    }
+  })
+
   it('requires all fields', () => {
     const result = step1Schema.safeParse({
       firstName: '',
       lastName: '',
       email: '',
+      phoneCountryCode: '',
       phone: '',
       dateOfBirth: '',
       country: '',

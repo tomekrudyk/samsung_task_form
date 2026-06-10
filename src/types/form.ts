@@ -4,6 +4,7 @@ export interface PersonalInfoData {
   firstName: string
   lastName: string
   email: string
+  phoneCountryCode: string
   phone: string
   dateOfBirth: string
   country: string
@@ -32,6 +33,7 @@ export const INITIAL_FORM_DATA: FormData = {
   firstName: '',
   lastName: '',
   email: '',
+  phoneCountryCode: 'US',
   phone: '',
   dateOfBirth: '',
   country: '',

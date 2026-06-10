@@ -1,19 +1,39 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
+import { useEffect, useMemo } from 'react'
+import { Controller, useForm } from 'react-hook-form'
 import { useFormWizard } from '../../context/FormWizardContext'
 import { useCountries } from '../../hooks/useCountries'
+import {
+  buildDialCodeOptions,
+  DEFAULT_PHONE_COUNTRY,
+  formatPhoneToE164,
+  parseStoredPhone,
+} from '../../lib/phone'
 import { step1Schema, type Step1FormValues } from '../../lib/schemas'
 import { Button } from '../ui/Button'
 import { Input } from '../ui/Input'
+import { PhoneInput } from '../ui/PhoneInput'
 import { Select } from '../ui/Select'
 
 export function Step1PersonalInfo() {
   const { formData, setFormData, nextStep } = useFormWizard()
   const { countries, isLoading, error: countriesError, isFallback } = useCountries()
 
+  const parsedPhone = useMemo(
+    () =>
+      parseStoredPhone(
+        formData.phone,
+        formData.phoneCountryCode || formData.country || DEFAULT_PHONE_COUNTRY
+      ),
+    [formData.phone, formData.phoneCountryCode, formData.country]
+  )
+
   const {
     register,
     handleSubmit,
+    control,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<Step1FormValues>({
     resolver: zodResolver(step1Schema),
@@ -21,19 +41,37 @@ export function Step1PersonalInfo() {
       firstName: formData.firstName,
       lastName: formData.lastName,
       email: formData.email,
-      phone: formData.phone,
+      phoneCountryCode: formData.phoneCountryCode || parsedPhone.phoneCountryCode,
+      phone: parsedPhone.phone,
       dateOfBirth: formData.dateOfBirth,
       country: formData.country,
     },
     mode: 'onBlur',
   })
 
+  const selectedCountry = watch('country')
+  const phoneValue = watch('phone')
+
+  useEffect(() => {
+    if (selectedCountry && !phoneValue) {
+      setValue('phoneCountryCode', selectedCountry, { shouldValidate: false })
+    }
+  }, [selectedCountry, phoneValue, setValue])
+
   const onSubmit = (data: Step1FormValues) => {
-    setFormData(data)
+    const e164 = formatPhoneToE164(data.phone, data.phoneCountryCode)
+    if (!e164) return
+
+    setFormData({
+      ...data,
+      phone: e164,
+      phoneCountryCode: data.phoneCountryCode,
+    })
     nextStep()
   }
 
   const countryOptions = countries.map((c) => ({ value: c.code, label: c.name }))
+  const dialCodeOptions = buildDialCodeOptions(countries)
   const countryHelperText = isFallback
     ? countriesError
     : 'Select your country of residence.'
@@ -80,15 +118,33 @@ export function Step1PersonalInfo() {
         {...register('email')}
       />
 
-      <Input
-        id="phone"
-        label="Phone number"
-        type="tel"
-        required
-        autoComplete="tel"
-        inputMode="tel"
-        error={errors.phone?.message}
-        {...register('phone')}
+      <Controller
+        name="phoneCountryCode"
+        control={control}
+        render={({ field: dialCodeField }) => (
+          <Controller
+            name="phone"
+            control={control}
+            render={({ field: phoneField }) => (
+              <PhoneInput
+                id="phone"
+                dialCodeId="phoneCountryCode"
+                required
+                helperText="Select your country code and enter your local number."
+                error={errors.phone?.message ?? errors.phoneCountryCode?.message}
+                dialCodeOptions={dialCodeOptions}
+                dialCodeProps={{
+                  ...dialCodeField,
+                  disabled: isLoading || dialCodeField.disabled,
+                }}
+                phoneProps={{
+                  ...phoneField,
+                  value: phoneField.value ?? '',
+                }}
+              />
+            )}
+          />
+        )}
       />
 
       <Input

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { validatePhoneNumber } from './phone'
 
 const ENQUIRY_TYPES = ['Personal', 'Business', 'Partnership', 'Other'] as const
 const ENQUIRY_TYPE_SET = new Set<string>(ENQUIRY_TYPES)
@@ -48,12 +49,8 @@ export const step1Schema = z.object({
     .min(1, 'Email is required')
     .max(254, 'Email is too long')
     .email('Please enter a valid email address'),
-  phone: z
-    .string()
-    .trim()
-    .min(7, 'Phone number is too short')
-    .max(20, 'Phone number is too long')
-    .regex(/^[\d\s+\-()]+$/, 'Please enter a valid phone number'),
+  phoneCountryCode: z.string().trim().min(1, 'Country code is required'),
+  phone: z.string().trim().min(1, 'Phone number is required'),
   dateOfBirth: z
     .string()
     .min(1, 'Date of birth is required')
@@ -64,6 +61,14 @@ export const step1Schema = z.object({
       message: 'You must be at least 18 years old',
     }),
   country: z.string().trim().min(1, 'Please select a country'),
+}).superRefine((data, ctx) => {
+  if (!validatePhoneNumber(data.phone, data.phoneCountryCode)) {
+    ctx.addIssue({
+      code: 'custom',
+      message: 'Please enter a valid phone number for the selected country code',
+      path: ['phone'],
+    })
+  }
 })
 
 export const step2Schema = z
@@ -136,6 +141,7 @@ const persistedFormDataSchema = z
     lastName: z.string().optional(),
     email: z.string().optional(),
     phone: z.string().optional(),
+    phoneCountryCode: z.string().optional(),
     dateOfBirth: z.string().optional(),
     country: z.string().optional(),
     enquiryType: z.string().optional(),
