@@ -50,6 +50,10 @@ function loadPersistedState(): { currentStep: number; formData: FormData } | nul
         ...INITIAL_FORM_DATA,
         ...stored,
         enquiryType: sanitizeEnquiryType(stored.enquiryType),
+        phoneCountryCode:
+          typeof stored.phoneCountryCode === 'string'
+            ? stored.phoneCountryCode
+            : INITIAL_FORM_DATA.phoneCountryCode,
         terms: Boolean(stored.terms),
       },
     }
